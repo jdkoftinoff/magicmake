@@ -1,0 +1,64 @@
+#! /bin/bash -e
+
+
+targets_without_deps="tags TAGS docs docs-dev compile-info clean"
+targets_with_deps="all tools tools-dev packages package package-dev package-docs package-docs-dev package-testresults test check "
+M=Makefile
+
+relative_dir="$(dirname "$0")"
+TOP_GROUP_DIR="$(cd ${relative_dir} && pwd)"
+build_dir="$PWD"
+
+subprojects=$(< ${TOP_GROUP_DIR}/.subprojects)
+
+deps_config=$(for i in ${subprojects}; do echo "--${i}-config=${build_dir}/${i}/${i}-config "; done)
+
+
+for i in $subprojects; do 
+  ( mkdir -p "$i" && cd "$i" && "$TOP_GROUP_DIR"/"$i"/configure ${deps_config} "$@")
+done
+
+(
+ for j in $targets_with_deps; do 
+   printf ".PHONY : ${j}\n\n"
+   printf "${j} : "
+   for i in $subprojects; do
+     printf "${i}-${j} "
+   done
+   printf "\n\n"
+   deps=""
+   for i in $subprojects; do
+     printf ".PHONY : ${i}-${j}\n\n"
+     printf "${i}-${j} : ${deps}\n"
+     printf "\t\$(MAKE) -C ${i} ${j}\n\n"
+     deps="${deps} ${i}-all"
+   done
+ done
+
+ for j in $targets_without_deps; do 
+   printf ".PHONY : ${j}\n\n"
+   printf "${j} : "
+   for i in $subprojects; do
+     printf "${i}-${j} "
+   done
+   printf "\n\n"
+   for i in $subprojects; do
+     printf ".PHONY : ${i}-${j}\n\n"
+     printf "${i}-${j} : \n"
+     printf "\t\$(MAKE) -C ${i} ${j}\n\n"
+   done
+ done
+) >"${M}"
+
+
+if [ -f ./reconfigure ]; then
+ mv ./reconfigure ./reconfigure-old
+fi
+echo "$0 \\"  >>./reconfigure
+for i in "$@";
+do
+  echo " \"$i\" \\" >> ./reconfigure
+done
+echo \"\$@\" >>./reconfigure
+chmod +x ./reconfigure
+
