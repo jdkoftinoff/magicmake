@@ -252,6 +252,9 @@ SUDO_CHECKINSTALL?=$(SUDO) $(CHECKINSTALL)
 CHECKINSTALL_OPTIONS+=--install=no --fstrans -y 
 STRIP?=$(COMPILER_PREFIX)strip 
 STRIP_OPTIONS?=
+TEST_OUT_SUFFIX?=out
+TEST_ERR_SUFFIX?=err
+
 
 ifeq ($(RELEASE),1)
 strip_if_release=$(STRIP) $(STRIP_OPTIONS) $(1)
@@ -626,7 +629,7 @@ endif
 # having DEBUG set to 1 means we compile with -g and add preprocessor define DEBUG=1
 
 ifeq ($(DEBUG),1)
-DEBUG_FLAGS?=-g -rdynamic
+DEBUG_FLAGS?=-g #-rdynamic
 COMPILE_FLAGS+=$(DEBUG_FLAGS)
 DEFINES+=DEBUG=1
 LINK_FLAGS+=$(DEBUG_FLAGS)
@@ -3117,7 +3120,7 @@ test: lib tools $(LIB_TESTS_SH_FILES) $(LIB_TESTS_EXE_FILES)
 	for i in $(LIB_TESTS_EXE_FILES); \
 	do \
 	  n=$$(basename $$i); \
-	  if $(VALGRIND) $(VALGRIND_OPTIONS) "./$${n}" $(TEST_ARGS) >"$${n}.out" 2>"$${n}.err"; then echo SUCCESS:$${n}; else echo  FAIL:$${n}; fi;\
+	  if $(VALGRIND) $(VALGRIND_OPTIONS) "./$${n}" $(TEST_ARGS) >"$${n}.$(TEST_OUT_SUFFIX)" 2>"$${n}.$(TEST_ERR_SUFFIX)"; then echo SUCCESS:$${n}; else echo  FAIL:$${n}; fi;\
 	done; \
 	for i in $(LIB_TESTS_SH_FILES); \
 	do \
